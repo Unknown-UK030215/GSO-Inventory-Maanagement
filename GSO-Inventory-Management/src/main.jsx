@@ -1,0 +1,17 @@
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+
+import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import { InventoryProvider } from './context/InventoryContext';
+import './styles/global.css';
+
+createRoot(document.getElementById('root')).render(
+    <BrowserRouter>
+        <AuthProvider>
+            <InventoryProvider>
+                <App />
+            </InventoryProvider>
+        </AuthProvider>
+    </BrowserRouter>
+);
