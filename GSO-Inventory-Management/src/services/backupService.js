@@ -1,25 +1,25 @@
 // ============================================================
 // DATA BACKUP & RESTORE
 // ------------------------------------------------------------
-// Every GSO register lives in the browser's local storage on this
-// device. To protect official records from loss (cleared cache,
-// new computer, browser reset) this service writes the whole set
-// of GSO stores to a single downloadable file and reads it back.
+// Data caches live in browser storage and can be exported for portability.
+// Authentication records are excluded; Supabase Auth owns credentials.
 // ============================================================
 
 const PREFIX = 'gso-';
 
 // The signed-in session is intentionally excluded so restoring a file
 // never signs anyone in or overwrites who is currently logged on.
-const EXCLUDE = new Set(['gso-auth-user']);
+const EXCLUDE = new Set([
+    'gso-auth-user',
+    'gso-local-users',
+    'gso-user-profiles'
+]);
 
 // Human-readable labels for the Backup page summary table.
 export const BACKUP_STORES = [
     { key: 'gso-assets', label: 'Inventory property records' },
     { key: 'gso-warehouse-assets', label: 'Warehouse records (items, AIR/RIS/SSMI)' },
     { key: 'gso-logs', label: 'Activity logs' },
-    { key: 'gso-local-users', label: 'Registered user accounts' },
-    { key: 'gso-user-profiles', label: 'Profile settings & passwords' },
     { key: 'gso-purchases', label: 'Purchasing & receiving' },
     { key: 'gso-rpci', label: 'Stock on hand (RPCI)' },
     { key: 'gso-ris-releases', label: 'RIS releases' },

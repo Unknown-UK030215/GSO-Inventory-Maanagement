@@ -336,6 +336,47 @@ body::before {
     text-align: center;
 }
 
+.database-setup-shell {
+    overflow-y: auto;
+    align-items: start;
+}
+
+.database-setup-card {
+    width: min(100%, 640px);
+    margin: 24px 0;
+}
+
+.database-setup-notes {
+    margin-top: 24px;
+    padding: 16px;
+    color: #536779;
+    background: #f6f9fc;
+    border: 1px solid #e2eaf1;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.database-setup-notes h2 {
+    margin: 0 0 8px;
+    color: #203247;
+    font-size: 15px;
+}
+
+.database-setup-notes ol {
+    margin: 0 0 12px;
+    padding-left: 20px;
+}
+
+.database-setup-notes p {
+    margin: 8px 0 0;
+}
+
+.database-setup-connected {
+    color: #247146;
+    font-weight: 700;
+}
+
 /* ========================================
    MAIN CONTENT
 ======================================== */
@@ -1101,6 +1142,73 @@ td {
 
 .form-status.error {
     color: #c0392b;
+}
+
+/* ========================================
+   PASSWORD SECURITY (hints, strength, links)
+======================================== */
+.password-hint {
+    grid-column: 1 / -1;
+    margin: -4px 0 4px;
+}
+
+.password-hint small {
+    display: block;
+    color: #7d8b9a;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.password-hint small b {
+    color: #28405a;
+}
+
+.strength-meter {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.strength-meter span {
+    flex: 1;
+    height: 5px;
+    border-radius: 999px;
+    background: #e4eaf1;
+    transition: background 0.2s ease;
+}
+
+.strength-meter.score-1 span:nth-child(1) { background: #c0392b; }
+.strength-meter.score-2 span:nth-child(-n+2) { background: #e08a1e; }
+.strength-meter.score-3 span:nth-child(-n+3) { background: #2f80c4; }
+.strength-meter.score-4 span { background: #1c7a4b; }
+
+.panel-note {
+    margin: -4px 0 14px;
+    color: #7d8b9a;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.panel-note strong {
+    color: #28405a;
+}
+
+.profile-grid > .span-2 {
+    grid-column: 1 / -1;
+}
+
+.link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #205783;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.link-button:hover {
+    text-decoration: underline;
 }
 
 /* ========================================

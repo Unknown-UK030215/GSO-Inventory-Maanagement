@@ -1,5 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { sampleAssets } from '../data/sampleAssets';
+import { isAdminRole } from '../data/userRoles';
+import { isSupabaseConfigured } from '../lib/supabase';
+import {
+    clearTrashRows,
+    deleteAssetRow,
+    deleteTrashRow,
+    fetchAssets,
+    fetchLogs,
+    fetchTrash,
+    insertLog,
+    insertTrash,
+    upsertAsset
+} from '../services/supabaseService';
 import { useAuth } from './useAuth';
 
 const InventoryContext = createContext(null);
@@ -8,6 +21,13 @@ const InventoryContext = createContext(null);
 // share an id with a record in the other, even within the same millisecond.
 let idCounter = Date.now();
 const nextId = () => idCounter++;
+
+// Mirroring to Supabase is best-effort: when the app is offline, the tables
+// are missing, or no credentials are set, the browser stores keep working and
+// the failure is only logged. It must never break the UI.
+function syncWarning(error) {
+    console.warn('Supabase sync skipped:', error?.message || error);
+}
 
 export function InventoryProvider({ children }) {
     // The signed-in user is stamped on every record and activity entry so
@@ -57,6 +77,78 @@ export function InventoryProvider({ children }) {
         localStorage.setItem('gso-trash', JSON.stringify(trash));
     }, [trash]);
 
+    // On first load, pull the registers, activity log and recycle bin from
+    // Supabase when it is configured. Remote data is only applied when it
+    // actually has rows, so an empty table never wipes the local seed.
+    useEffect(() => {
+        if (!isSupabaseConfigured || !user?.id) return undefined;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const [remoteAssets, remoteWarehouse, remoteLogs, remoteTrash] = await Promise.all([
+                    fetchAssets('inventory'),
+                    fetchAssets('warehouse'),
+                    fetchLogs(),
+                    fetchTrash()
+                ]);
+                if (cancelled) return;
+                const canSeedAll = isAdminRole(user.role);
+                if (remoteAssets.length) {
+                    setAssets(remoteAssets);
+                } else {
+                    const localInventory = assets.filter(asset =>
+                        canSeedAll || !asset.registeredBy || asset.registeredBy === actor
+                    );
+                    await Promise.all(localInventory.map(asset => upsertAsset({
+                        ...asset,
+                        registeredBy: asset.registeredBy || actor,
+                        registeredByName: asset.registeredByName || actorName
+                    }, 'inventory')));
+                }
+                if (remoteWarehouse.length) {
+                    setWarehouseAssets(remoteWarehouse);
+                } else {
+                    const localWarehouse = warehouseAssets.filter(asset =>
+                        canSeedAll || !asset.registeredBy || asset.registeredBy === actor
+                    );
+                    await Promise.all(localWarehouse.map(asset => upsertAsset({
+                        ...asset,
+                        registeredBy: asset.registeredBy || actor,
+                        registeredByName: asset.registeredByName || actorName
+                    }, 'warehouse')));
+                }
+                if (remoteLogs.length) setLogs(remoteLogs);
+                else {
+                    const localLogs = logs.filter(entry =>
+                        canSeedAll || !entry.actor || entry.actor === actor
+                    );
+                    await Promise.all(localLogs.map(entry => insertLog({
+                        ...entry,
+                        actor: entry.actor || actor,
+                        actorName: entry.actorName || actorName
+                    })));
+                }
+                if (remoteTrash.length) setTrash(remoteTrash);
+                else {
+                    const localTrash = trash.filter(entry =>
+                        canSeedAll || !entry.deletedBy || entry.deletedBy === actor || entry.deletedBy === actorName
+                    );
+                    await Promise.all(localTrash.map(entry => insertTrash({
+                    ...entry,
+                    deletedBy: entry.deletedBy || actor
+                    })));
+                }
+            } catch (error) {
+                syncWarning(error);
+            }
+        })();
+
+        return () => { cancelled = true; };
+        // Seed data is captured when the authenticated account changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
+
     const HISTORY_LIMIT = 20;
     const TRASH_LIMIT = 50;
 
@@ -72,17 +164,16 @@ export function InventoryProvider({ children }) {
     const allAssets = useMemo(() => [...assets, ...warehouseAssets], [assets, warehouseAssets]);
 
     const log = (action, detail) => {
-        setLogs(current => [
-            {
-                id: Date.now(),
-                date: new Date().toLocaleString(),
-                action,
-                detail,
-                actor,
-                actorName
-            },
-            ...current
-        ]);
+        const entry = {
+            id: Date.now(),
+            date: new Date().toLocaleString(),
+            action,
+            detail,
+            actor,
+            actorName
+        };
+        setLogs(current => [entry, ...current]);
+        if (isSupabaseConfigured) insertLog(entry).catch(syncWarning);
     };
 
     // `pool` selects which register the record belongs to, so the calling
@@ -100,6 +191,7 @@ export function InventoryProvider({ children }) {
         } else {
             setAssets(current => [record, ...current]);
         }
+        if (isSupabaseConfigured) upsertAsset(record, pool).catch(syncWarning);
         log('Created asset', record.propertyNo || record.risNo || record.airNo || record.ssmiMonth || '');
     };
 
@@ -112,6 +204,15 @@ export function InventoryProvider({ children }) {
         setWarehouseAssets(current => current.map(asset =>
             asset.id === id ? { ...asset, ...changes } : asset
         ));
+        if (isSupabaseConfigured) {
+            const existing =
+                assets.find(asset => asset.id === id) ||
+                warehouseAssets.find(asset => asset.id === id);
+            if (existing) {
+                const register = assets.some(asset => asset.id === id) ? 'inventory' : 'warehouse';
+                upsertAsset({ ...existing, ...changes }, register).catch(syncWarning);
+            }
+        }
         log(activity?.action || 'Updated asset', activity?.detail || String(id));
     };
 
@@ -125,20 +226,20 @@ export function InventoryProvider({ children }) {
 
         // Keep the deleted record in the recycle bin so it can be restored.
         if (record) {
-            setTrash(current => [
-                {
-                    trashId: nextId(),
-                    record,
-                    pool: recordPool,
-                    deletedAt: new Date().toLocaleString(),
-                    deletedBy: actorName
-                },
-                ...current
-            ].slice(0, TRASH_LIMIT));
+            const entry = {
+                trashId: nextId(),
+                record,
+                pool: recordPool,
+                deletedAt: new Date().toLocaleString(),
+                deletedBy: actor
+            };
+            setTrash(current => [entry, ...current].slice(0, TRASH_LIMIT));
+            if (isSupabaseConfigured) insertTrash(entry).catch(syncWarning);
         }
 
         setAssets(current => current.filter(asset => asset.id !== id));
         setWarehouseAssets(current => current.filter(asset => asset.id !== id));
+        if (isSupabaseConfigured) deleteAssetRow(id).catch(syncWarning);
         log('Deleted asset', String(record?.propertyNo || id));
     };
 
@@ -164,14 +265,22 @@ export function InventoryProvider({ children }) {
             setAssets(current => [entry.record, ...current]);
         }
         setTrash(current => current.filter(item => item.trashId !== trashId));
+        if (isSupabaseConfigured) {
+            upsertAsset(entry.record, entry.pool).catch(syncWarning);
+            deleteTrashRow(trashId).catch(syncWarning);
+        }
         log('Restored asset', entry.record?.propertyNo || '');
     };
 
     const purgeTrash = trashId => {
         setTrash(current => current.filter(item => item.trashId !== trashId));
+        if (isSupabaseConfigured) deleteTrashRow(trashId).catch(syncWarning);
     };
 
-    const emptyTrash = () => setTrash([]);
+    const emptyTrash = () => {
+        setTrash([]);
+        if (isSupabaseConfigured) clearTrashRows().catch(syncWarning);
+    };
 
     return (
         <InventoryContext.Provider value={{

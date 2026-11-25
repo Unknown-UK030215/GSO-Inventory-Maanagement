@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import PageHeader from '../components/common/PageHeader';
@@ -45,7 +45,7 @@ export default function AdminDashboard() {
     const { workOrders, openCount: openWorkOrders } = useMaintenance();
 
     const isSuperAdmin = user?.role === 'super-admin';
-    const [accounts, setAccounts] = useState(listUsers);
+    const [accounts, setAccounts] = useState([]);
     const [notice, setNotice] = useState('');
     const [roleFilter, setRoleFilter] = useState(USER_ROLES[0].id);
     const [selectedUsername, setSelectedUsername] = useState('');
@@ -55,6 +55,14 @@ export default function AdminDashboard() {
     const [noticeMessage, setNoticeMessage] = useState('');
     const [noticeType, setNoticeType] = useState('info');
     const [noticeStatus, setNoticeStatus] = useState('');
+
+    useEffect(() => {
+        let active = true;
+        listUsers()
+            .then(items => { if (active) setAccounts(items); })
+            .catch(error => { if (active) setNotice(error.message); });
+        return () => { active = false; };
+    }, [listUsers]);
 
     const reports = feedback.filter(item =>
         (reportKind === 'all' || item.kind === reportKind) &&
@@ -145,12 +153,12 @@ export default function AdminDashboard() {
         );
     }
 
-    function handleRemove(username) {
+    async function handleRemove(username) {
         try {
-            removeUser(username);
-            setAccounts(listUsers());
+            await removeUser(username);
+            setAccounts(await listUsers());
             if (selectedUsername === username) setSelectedUsername('');
-            setNotice(`Account "${username}" has been removed.`);
+            setNotice(`Account "${username}" has been deactivated.`);
         } catch (err) {
             setNotice(err.message);
         }
@@ -755,7 +763,7 @@ export default function AdminDashboard() {
                                                 className="delete"
                                                 onClick={() => handleRemove(account.username)}
                                             >
-                                                Remove
+                                                Deactivate
                                             </button>
                                         </td>
                                     </tr>

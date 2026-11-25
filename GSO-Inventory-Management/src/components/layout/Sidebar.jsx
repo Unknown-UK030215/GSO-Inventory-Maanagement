@@ -103,7 +103,14 @@ const groupsByRole = {
                 ['Property Clearance', '/clearance']
             ]
         },
-        { label: 'Monitoring', links: [['Activity Logs', '/activity-logs'], ['Data Backup & Restore', '/backup']] },
+        {
+            label: 'Monitoring',
+            links: [
+                ['Activity Logs', '/activity-logs'],
+                ['Data Backup & Restore', '/backup'],
+                ['Database Setup', '/database-setup']
+            ]
+        },
         { label: 'Support', links: [['Role Chat', '/chat'], ['Notifications', '/notifications'], ['Feedback & Bug Report', '/feedback']] }
     ],
     'super-admin': [
@@ -121,7 +128,14 @@ const groupsByRole = {
                 ['Property Clearance', '/clearance']
             ]
         },
-        { label: 'Monitoring', links: [['Activity Logs', '/activity-logs'], ['Data Backup & Restore', '/backup']] },
+        {
+            label: 'Monitoring',
+            links: [
+                ['Activity Logs', '/activity-logs'],
+                ['Data Backup & Restore', '/backup'],
+                ['Database Setup', '/database-setup']
+            ]
+        },
         { label: 'Support', links: [['Role Chat', '/chat'], ['Notifications', '/notifications'], ['Feedback & Bug Report', '/feedback']] }
     ]
 };

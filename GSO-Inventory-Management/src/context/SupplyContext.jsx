@@ -1,5 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
+import { isSupabaseConfigured } from '../lib/supabase';
+import { isAdminRole } from '../data/userRoles';
+import {
+    fetchOrSeedRecords,
+    fetchRisReleases,
+    saveRisReleases,
+    saveStoredRecords
+} from '../services/supabaseService';
 import { useAuth } from './useAuth';
 
 const SupplyContext = createContext(null);
@@ -31,6 +39,10 @@ function readObject(key) {
 const stockKey = value => String(value || '').trim().toLowerCase();
 const now = () => new Date().toLocaleString();
 
+function syncWarning(error) {
+    console.warn('Supabase supply sync skipped:', error?.message || error);
+}
+
 export function SupplyProvider({ children }) {
     const { user } = useAuth();
     const [purchases, setPurchases] = useState(() => readList(PURCHASES_KEY));
@@ -49,24 +61,51 @@ export function SupplyProvider({ children }) {
         localStorage.setItem(RELEASES_KEY, JSON.stringify(releases));
     }, [releases]);
 
+    useEffect(() => {
+        if (!isSupabaseConfigured || !user?.id) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const localPurchases = purchases
+                    .filter(item => isAdminRole(user.role) || !item.recordedBy || item.recordedBy === user.username)
+                    .map(item => ({ ...item, recordedBy: item.recordedBy || user.username }));
+                const [remotePurchases, remoteRpci, remoteReleases] = await Promise.all([
+                    fetchOrSeedRecords('purchases', localPurchases, { orderBy: 'recorded_at' }),
+                    fetchOrSeedRecords('rpci_stock', rpci, { orderBy: 'updated_at' }),
+                    fetchRisReleases()
+                ]);
+                if (cancelled) return;
+                if (remotePurchases.length) setPurchases(remotePurchases);
+                if (remoteRpci.length) setRpci(remoteRpci);
+                if (Object.keys(remoteReleases).length) setReleases(remoteReleases);
+                else if (Object.keys(releases).length) await saveRisReleases(releases);
+            } catch (error) {
+                syncWarning(error);
+            }
+        })();
+        return () => { cancelled = true; };
+        // These local snapshots seed empty remote tables only when auth changes.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]);
+
     // Raise a stock item, or grow the existing one for the same stock number.
     function addToStock(record) {
         const key = stockKey(record.stockNo || record.description);
-        setRpci(current => {
-            const existing = current.find(item =>
-                stockKey(item.stockNo || item.description) === key
-            );
-            if (existing) {
-                return current.map(item => item.id === existing.id
-                    ? {
-                        ...item,
-                        onHand: Number(item.onHand || 0) + record.deliveredQty,
-                        unitCost: record.unitCost || item.unitCost,
-                        updatedAt: now()
-                    }
-                    : item);
-            }
-            return [{
+        const existing = rpci.find(item =>
+            stockKey(item.stockNo || item.description) === key
+        );
+        if (existing) {
+            const updated = {
+                ...existing,
+                onHand: Number(existing.onHand || 0) + record.deliveredQty,
+                unitCost: record.unitCost || existing.unitCost,
+                updatedAt: now()
+            };
+            setRpci(current => current.map(item => item.id === existing.id ? updated : item));
+            if (isSupabaseConfigured) saveStoredRecords('rpci_stock', [updated]).catch(syncWarning);
+            return;
+        }
+        const added = {
                 id: nextId(),
                 stockNo: record.stockNo,
                 description: record.description,
@@ -76,8 +115,9 @@ export function SupplyProvider({ children }) {
                 // Minimum on-hand level. 0 means no reorder alert for this item.
                 minLevel: record.minLevel || 0,
                 updatedAt: now()
-            }, ...current];
-        });
+            };
+        setRpci(current => [added, ...current]);
+        if (isSupabaseConfigured) saveStoredRecords('rpci_stock', [added]).catch(syncWarning);
     }
 
     // Record a delivery against a purchase order. When the supplier ships fewer
@@ -116,6 +156,7 @@ export function SupplyProvider({ children }) {
         };
 
         setPurchases(current => [record, ...current]);
+        if (isSupabaseConfigured) saveStoredRecords('purchases', [record]).catch(syncWarning);
         if (record.forStock && deliveredQty > 0) {
             addToStock(record);
         }
@@ -134,23 +175,24 @@ export function SupplyProvider({ children }) {
         const match = rpci.find(item => stockKey(item.stockNo || item.description) === key);
 
         if (match) {
-            setRpci(current => current.map(item => item.id === match.id
-                ? {
-                    ...item,
-                    onHand: Math.max(0, Number(item.onHand || 0) - quantity),
-                    updatedAt: now()
-                }
-                : item));
+            const updated = {
+                ...match,
+                onHand: Math.max(0, Number(match.onHand || 0) - quantity),
+                updatedAt: now()
+            };
+            setRpci(current => current.map(item => item.id === match.id ? updated : item));
+            if (isSupabaseConfigured) saveStoredRecords('rpci_stock', [updated]).catch(syncWarning);
         }
 
-        setReleases(current => ({
-            ...current,
-            [ris.id]: {
-                releasedAt: now(),
-                releasedBy: user?.displayName || 'System',
-                deducted: Boolean(match)
-            }
-        }));
+        const release = {
+            releasedAt: new Date().toISOString(),
+            releasedBy: user?.username || 'system',
+            deducted: Boolean(match)
+        };
+        setReleases(current => ({ ...current, [ris.id]: release }));
+        if (isSupabaseConfigured) {
+            saveRisReleases({ [ris.id]: release }).catch(syncWarning);
+        }
 
         return { deducted: Boolean(match) };
     }
@@ -158,9 +200,11 @@ export function SupplyProvider({ children }) {
     // Set the minimum on-hand level that triggers a reorder alert for an item.
     function setReorderLevel(id, minLevel) {
         const level = Math.max(0, Number(minLevel) || 0);
-        setRpci(current => current.map(item =>
-            item.id === id ? { ...item, minLevel: level, updatedAt: now() } : item
-        ));
+        const updated = rpci.find(item => item.id === id);
+        if (!updated) return;
+        const changed = { ...updated, minLevel: level, updatedAt: now() };
+        setRpci(current => current.map(item => item.id === id ? changed : item));
+        if (isSupabaseConfigured) saveStoredRecords('rpci_stock', [changed]).catch(syncWarning);
     }
 
     const isReleased = id => Boolean(releases[id]);

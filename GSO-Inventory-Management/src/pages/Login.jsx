@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AuthFrame from '../components/common/AuthFrame';
 import { useAuth } from '../context/useAuth';
 import { USER_ROLES } from '../data/userRoles';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function Login() {
     const { user, login } = useAuth();
@@ -54,6 +55,9 @@ export default function Login() {
                 <p className="auth-switch">
                     New staff member? <Link to="/register">Register</Link>
                 </p>
+                <p className="auth-switch">
+                    <Link to="/database-setup">Database Setup</Link>
+                </p>
             </AuthFrame>
         );
     }
@@ -87,9 +91,10 @@ export default function Login() {
             </button>
             <form className="auth-form" onSubmit={submit}>
                 <label>
-                    Username
+                    {isSupabaseConfigured ? 'Email Address' : 'Username'}
                     <input
-                        autoComplete="username"
+                        type={isSupabaseConfigured ? 'email' : 'text'}
+                        autoComplete={isSupabaseConfigured ? 'email' : 'username'}
                         autoFocus
                         value={username}
                         onChange={event => setUsername(event.target.value)}
@@ -111,6 +116,12 @@ export default function Login() {
                     {busy ? 'Signing in…' : 'Sign In'}
                 </button>
             </form>
+            <p className="auth-switch">
+                <Link to="/forgot-password">Forgot your password?</Link>
+            </p>
+            <p className="auth-switch">
+                <Link to="/database-setup">Database Setup</Link>
+            </p>
         </AuthFrame>
     );
 }

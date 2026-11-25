@@ -9,9 +9,11 @@ import Backup from './pages/Backup';
 import Chat from './pages/Chat';
 import Clearance from './pages/Clearance';
 import Dashboard from './pages/Dashboard';
+import DatabaseSetup from './pages/DatabaseSetup';
 import DisposalMissing from './pages/DisposalMissing';
 import Feedback from './pages/Feedback';
 import Forms from './pages/Forms';
+import ForgotPassword from './pages/ForgotPassword';
 import Generic from './pages/Generic';
 import Login from './pages/Login';
 import Maintenance from './pages/Maintenance';
@@ -19,13 +21,15 @@ import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import PurchasingReceiving from './pages/PurchasingReceiving';
 import Register from './pages/Register';
+import ResetPassword from './pages/ResetPassword';
 import Rpci from './pages/Rpci';
 import Welcome from './pages/Welcome';
 
 function ProtectedRoutes() {
-    const { user } = useAuth();
+    const { user, authLoading } = useAuth();
     const location = useLocation();
 
+    if (authLoading) return <div className="auth-shell"><p>Checking your session…</p></div>;
     if (user) return <Outlet />;
 
     // Signed-out visitors start on the welcome/role picker at the site root.
@@ -54,6 +58,9 @@ export default function App() {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/database-setup" element={<DatabaseSetup />} />
             {/* Hidden administrator sign-in — intentionally not linked in the public UI. */}
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route element={<ProtectedRoutes />}>

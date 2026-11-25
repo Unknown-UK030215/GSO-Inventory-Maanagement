@@ -1,11 +1,14 @@
 import { useState } from 'react';
 
 import PageHeader from '../components/common/PageHeader';
+import PasswordHint from '../components/common/PasswordHint';
 import { useAuth } from '../context/useAuth';
+import { SECURITY_QUESTIONS } from '../data/securityQuestions';
 import { getRole } from '../data/userRoles';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 export default function Profile() {
-    const { user, updateProfile, changePassword } = useAuth();
+    const { user, updateProfile, changePassword, setRecoveryQuestion } = useAuth();
     const role = getRole(user?.role);
 
     const [form, setForm] = useState({
@@ -22,6 +25,13 @@ export default function Profile() {
     const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' });
     const [savingPassword, setSavingPassword] = useState(false);
 
+    const [recovery, setRecovery] = useState({
+        question: user?.recoveryQuestion || '',
+        answer: ''
+    });
+    const [recoveryStatus, setRecoveryStatus] = useState({ type: '', message: '' });
+    const [savingRecovery, setSavingRecovery] = useState(false);
+
     function updateField(field, value) {
         setForm(prev => ({ ...prev, [field]: value }));
     }
@@ -30,12 +40,28 @@ export default function Profile() {
         setPasswords(prev => ({ ...prev, [field]: value }));
     }
 
-    function saveProfile(event) {
+    function saveRecovery(event) {
+        event.preventDefault();
+        setRecoveryStatus({ type: '', message: '' });
+        setSavingRecovery(true);
+        setRecoveryQuestion(recovery.question, recovery.answer)
+            .then(() => {
+                setRecovery(prev => ({ ...prev, answer: '' }));
+                setRecoveryStatus({ type: 'success', message: 'Recovery question saved.' });
+            })
+            .catch(err => setRecoveryStatus({
+                type: 'error',
+                message: err.message || 'Unable to save the recovery question.'
+            }))
+            .finally(() => setSavingRecovery(false));
+    }
+
+    async function saveProfile(event) {
         event.preventDefault();
         setProfileStatus({ type: '', message: '' });
         setSavingProfile(true);
         try {
-            updateProfile(form);
+            await updateProfile(form);
             setProfileStatus({ type: 'success', message: 'Profile details saved.' });
         } catch (err) {
             setProfileStatus({ type: 'error', message: err.message || 'Unable to save your profile.' });
@@ -93,7 +119,12 @@ export default function Profile() {
                                 placeholder="name@elnido.gov.ph"
                                 value={form.email}
                                 onChange={event => updateField('email', event.target.value)}
+                                readOnly={isSupabaseConfigured}
+                                required
                             />
+                            {isSupabaseConfigured && (
+                                <small className="form-note">Sign-in email is verified and managed by Supabase Auth.</small>
+                            )}
                         </label>
                         <label>
                             Phone Number
@@ -165,6 +196,7 @@ export default function Profile() {
                                 required
                             />
                         </label>
+                        <PasswordHint password={passwords.next} username={user?.username} />
                         <label className="span-2">
                             Confirm New Password
                             <input
@@ -188,6 +220,49 @@ export default function Profile() {
                         </div>
                     </form>
                 </section>
+
+                {!isSupabaseConfigured && (
+                    <section className="panel span-2">
+                        <h2 className="panel-title">Recovery Question</h2>
+                        <p className="panel-note">
+                            Pick a question only you can answer. The response is stored as a salted hash.
+                        </p>
+                        <form className="form-grid" onSubmit={saveRecovery}>
+                            <label className="span-2">
+                                Recovery Question
+                                <select
+                                    value={recovery.question}
+                                    onChange={event => setRecovery(prev => ({ ...prev, question: event.target.value }))}
+                                    required
+                                >
+                                    <option value="" disabled>Select a question…</option>
+                                    {SECURITY_QUESTIONS.map(question => (
+                                        <option key={question} value={question}>{question}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="span-2">
+                                Recovery Answer
+                                <input
+                                    autoComplete="off"
+                                    value={recovery.answer}
+                                    onChange={event => setRecovery(prev => ({ ...prev, answer: event.target.value }))}
+                                    required
+                                />
+                            </label>
+                            <div className="profile-actions">
+                                {recoveryStatus.message && (
+                                    <p className={`form-status ${recoveryStatus.type}`} role="status">
+                                        {recoveryStatus.message}
+                                    </p>
+                                )}
+                                <button type="submit" disabled={savingRecovery}>
+                                    {savingRecovery ? 'Saving…' : 'Save Recovery Question'}
+                                </button>
+                            </div>
+                        </form>
+                    </section>
+                )}
             </div>
         </>
     );

@@ -69,7 +69,7 @@ export default function Backup() {
         <>
             <PageHeader
                 title="Data Backup & Restore"
-                description="Protect the GSO's official records. Download a copy of everything on this device, or restore it from a saved file."
+                description="Export the records currently cached on this device. Supabase Auth accounts and credentials are never included."
             />
 
             {/* FRESHNESS REMINDER — nudges staff when no recent copy exists */}
@@ -108,8 +108,9 @@ export default function Backup() {
                 <article className="panel">
                     <h3>Download a Backup</h3>
                     <p className="result-count">
-                        Saves all registers — assets, warehouse, supply, RPCI, work orders, logs,
-                        accounts and settings — into one file you can keep in a safe place.
+                        Saves the inventory, warehouse, supply, work orders, logs, reports,
+                        notifications, and chat cache into one JSON file. Use Supabase's dashboard
+                        backups for a full server-side database backup.
                     </p>
                     <div className="actions">
                         <button type="button" onClick={handleDownload}>Download Backup</button>

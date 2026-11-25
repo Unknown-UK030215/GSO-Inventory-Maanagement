@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import AuthFrame from '../components/common/AuthFrame';
 import { useAuth } from '../context/useAuth';
 import { isAdminRole } from '../data/userRoles';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 // Hidden administrator sign-in. This route is not linked from anywhere in
 // the public UI — it is reached only by knowing the /admin-login path.
@@ -54,9 +55,10 @@ export default function AdminLogin() {
         >
             <form className="auth-form" onSubmit={submit}>
                 <label>
-                    Administrator Username
+                    {isSupabaseConfigured ? 'Administrator Email' : 'Administrator Username'}
                     <input
-                        autoComplete="off"
+                        type={isSupabaseConfigured ? 'email' : 'text'}
+                        autoComplete={isSupabaseConfigured ? 'email' : 'off'}
                         autoFocus
                         value={username}
                         onChange={event => setUsername(event.target.value)}

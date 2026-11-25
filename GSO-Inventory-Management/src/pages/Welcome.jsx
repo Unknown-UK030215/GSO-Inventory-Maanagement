@@ -65,6 +65,9 @@ export default function Welcome() {
             <p className="auth-switch">
                 New staff member? <Link to="/register">Register</Link>
             </p>
+            <p className="auth-switch">
+                <Link to="/database-setup">Database Setup</Link>
+            </p>
         </AuthFrame>
     );
 }
