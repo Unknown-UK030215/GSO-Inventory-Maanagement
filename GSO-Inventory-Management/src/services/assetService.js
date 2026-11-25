@@ -28,6 +28,25 @@ export function validateAsset(a) {
         return true;
     }
 
+    if (a.formType === 'air') {
+        if (!a.supplier?.trim()) throw Error('Supplier is required');
+        if (!a.description?.trim()) throw Error('Description is required');
+        if (Number(a.quantity) < 1) throw Error('Quantity must be at least one');
+        return true;
+    }
+
+    if (a.formType === 'ris') {
+        if (!a.risNo?.trim()) throw Error('RIS No. is required');
+        if (!a.description?.trim()) throw Error('Description is required');
+        if (Number(a.quantity) < 1) throw Error('Quantity must be at least one');
+        return true;
+    }
+
+    if (a.formType === 'ssmi') {
+        if (!a.ssmiMonth?.trim()) throw Error('Month / Year is required');
+        return true;
+    }
+
     if (!a.propertyNo?.trim()) throw Error('Property number is required');
     if (!a.description?.trim()) throw Error('Description is required');
     if (Number(a.quantity) < 1) throw Error('Quantity must be at least one');

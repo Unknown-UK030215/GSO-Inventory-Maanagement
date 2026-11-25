@@ -16,7 +16,23 @@ export const USER_ROLES = [
     }
 ];
 
-const rolePaths = {
+// Administrator roles are deliberately kept out of USER_ROLES so they never
+// appear in the public role picker or the registration form. They are only
+// reachable through the hidden administrator sign-in route.
+export const ADMIN_ROLES = [
+    {
+        id: 'admin',
+        name: 'Administrator',
+        description: 'System administration and oversight.'
+    },
+    {
+        id: 'super-admin',
+        name: 'Super Administrator',
+        description: 'Full control including account management.'
+    }
+];
+
+const ROLE_PATHS = {
     staff: null,
     'fuel-vehicle': new Set([
         '/',
@@ -24,6 +40,7 @@ const rolePaths = {
         '/assignments',
         '/transfers',
         '/inspection',
+        '/maintenance',
         '/activity-logs'
     ]),
     warehouse: new Set([
@@ -34,15 +51,26 @@ const rolePaths = {
         '/transfers',
         '/inspection',
         '/forms',
-        '/reports'
-    ])
+        '/reports',
+        '/purchasing',
+        '/rpci',
+        '/maintenance',
+        '/clearance'
+    ]),
+    // Administrators get unrestricted access; `null` means "every path".
+    admin: null,
+    'super-admin': null
 };
 
 export function getRole(roleId) {
-    return USER_ROLES.find(role => role.id === roleId) || USER_ROLES[0];
+    return [...USER_ROLES, ...ADMIN_ROLES].find(role => role.id === roleId) || USER_ROLES[0];
+}
+
+export function isAdminRole(roleId) {
+    return ADMIN_ROLES.some(role => role.id === roleId);
 }
 
 export function canAccessPath(roleId, path) {
-    const allowed = rolePaths[roleId] ?? rolePaths.staff;
+    const allowed = ROLE_PATHS[roleId] ?? ROLE_PATHS.staff;
     return allowed === null || allowed.has(path);
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { ADMIN_ACCOUNTS } from '../data/adminAccounts';
 import { USER_ROLES } from '../data/userRoles';
 import AuthContext from './authContextBase';
 const USERS_KEY = 'gso-local-users';
@@ -104,6 +105,50 @@ export function AuthProvider({ children }) {
         return startSession(account);
     }
 
+    // Hidden administrator sign-in — validated against the secret accounts
+    // rather than the public staff register. A password the administrator
+    // changed from Profile Settings is stored as an override.
+    async function loginAdmin(username, password) {
+        const normalizedUsername = username.trim().toLowerCase();
+        const account = ADMIN_ACCOUNTS.find(
+            item => item.username.toLowerCase() === normalizedUsername
+        );
+        if (!account) {
+            throw new Error('Invalid administrator credentials.');
+        }
+
+        const stored = readProfiles()[profileKey(account.username)] || {};
+        const matches = stored.passwordHash
+            ? stored.passwordHash === await hashPassword(password)
+            : account.password === password;
+        if (!matches) {
+            throw new Error('Invalid administrator credentials.');
+        }
+
+        return startSession({
+            username: account.username,
+            displayName: account.displayName,
+            role: account.role
+        });
+    }
+
+    function listUsers() {
+        return readUsers().map(account => ({
+            username: account.username,
+            displayName: account.displayName || account.username,
+            role: account.role || 'staff'
+        }));
+    }
+
+    function removeUser(username) {
+        if (user?.role !== 'super-admin') {
+            throw new Error('Only a super administrator can remove accounts.');
+        }
+        const key = profileKey(username);
+        const remaining = readUsers().filter(item => profileKey(item.username) !== key);
+        localStorage.setItem(USERS_KEY, JSON.stringify(remaining));
+    }
+
     async function register({ displayName, username, password, role }) {
         const cleanName = displayName.trim();
         const cleanUsername = username.trim();
@@ -185,9 +230,11 @@ export function AuthProvider({ children }) {
         const stored = profiles[key] || {};
         const accounts = readUsers();
         const account = accounts.find(item => profileKey(item.username) === key);
+        const admin = ADMIN_ACCOUNTS.find(item => profileKey(item.username) === key);
 
         const expectedHash = stored.passwordHash
             || (account && account.passwordHash)
+            || (admin && await hashPassword(admin.password))
             || await hashPassword(DEFAULT_PASSWORD);
 
         if (await hashPassword(currentPassword) !== expectedHash) {
@@ -211,7 +258,7 @@ export function AuthProvider({ children }) {
     }
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, updateProfile, changePassword }}>
+        <AuthContext.Provider value={{ user, login, loginAdmin, listUsers, removeUser, register, logout, updateProfile, changePassword }}>
             {children}
         </AuthContext.Provider>
     );

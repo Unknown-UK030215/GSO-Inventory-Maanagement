@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import GSO_LOGO from '../../assets/GSO-Logo.jpeg';
 import { useAuth } from '../../context/useAuth';
 import { getRole } from '../../data/userRoles';
+import GlobalSearch from './GlobalSearch';
 import Sidebar from './Sidebar';
 import UserMenu from './UserMenu';
 
@@ -20,6 +21,7 @@ export default function Layout() {
                         <div className="header-title">GSO Inventory Management · {role.name}</div>
                     </div>
                     <div className="header-actions">
+                        <GlobalSearch />
                         <span className="header-date">{new Date().toLocaleDateString()}</span>
                         <UserMenu />
                     </div>

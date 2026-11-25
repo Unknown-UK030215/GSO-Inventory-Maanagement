@@ -9,8 +9,8 @@ export default function Login() {
     const { user, login } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    const [selectedRole, setSelectedRole] = useState('');
-    const [loginRole, setLoginRole] = useState('');
+    const [selectedRole, setSelectedRole] = useState(location.state?.role || '');
+    const [loginRole, setLoginRole] = useState(location.state?.role || '');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');

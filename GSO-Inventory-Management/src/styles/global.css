@@ -79,6 +79,10 @@ body::before {
 }
 
 .sidebar nav a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     color: #d0dbea;
     text-decoration: none;
     padding: 10px 12px;
@@ -89,6 +93,20 @@ body::before {
 .sidebar nav a.active {
     background: #28517d;
     color: white;
+}
+
+/* Super-administrator notification count on a nav link. */
+.nav-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: #d9534f;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .staff {
@@ -253,6 +271,11 @@ body::before {
     background: #edf5fb;
     border-color: #39739f;
     box-shadow: 0 0 0 2px #39739f18;
+}
+
+/* Administrator option on the welcome screen. */
+.role-choice.administrator {
+    border-style: dashed;
 }
 
 .role-continue {
@@ -805,6 +828,64 @@ td {
     line-height: 1.5;
 }
 
+.activity-detail small {
+    display: block;
+    margin-top: 4px;
+    color: #8492a1;
+    font-size: 10px;
+}
+
+/* ========================================
+   SYSTEM NOTIFICATIONS
+======================================== */
+.notice {
+    border: 1px solid #e6ecf2;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background: #fbfcfe;
+}
+
+.notice:last-child {
+    margin-bottom: 0;
+}
+
+.notice-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.notice-head b {
+    font-size: 13px;
+    color: #28405a;
+}
+
+.notice p {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: #4a5f75;
+    line-height: 1.5;
+}
+
+.notice small {
+    color: #8492a1;
+    font-size: 10px;
+}
+
+/* Checkbox rows inside a form grid (e.g. "add to stock"). */
+.form-grid label.checkbox-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-grid label.checkbox-field input {
+    width: auto;
+}
+
 .activity-tag {
     display: inline-flex;
     max-width: 190px;
@@ -1140,6 +1221,114 @@ td {
 }
 
 /* ========================================
+   WAREHOUSE DASHBOARD — QUICK ACTIONS
+   ======================================== */
+.warehouse-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.warehouse-action-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid #e6ecf2;
+    border-radius: 10px;
+    padding: 16px;
+    background: #fbfcfe;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.warehouse-action-card:hover {
+    box-shadow: 0 4px 14px rgba(20, 50, 90, 0.08);
+    transform: translateY(-1px);
+}
+
+.wa-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wa-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.wa-header strong {
+    font-size: 22px;
+    color: #28405a;
+    line-height: 1;
+}
+
+.wa-header small {
+    font-size: 11px;
+    color: #7d8b9a;
+}
+
+.wa-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.wa-body b {
+    font-size: 13px;
+    color: #28405a;
+}
+
+.wa-body small {
+    font-size: 11px;
+    color: #7d8b9a;
+    line-height: 1.4;
+}
+
+.wa-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.wa-actions button {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 12px;
+}
+
+.wa-actions a {
+    flex: 1;
+}
+
+.wa-actions a button {
+    width: 100%;
+}
+
+/* Transaction tags in the recent transactions table */
+.txn-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+.txn-air { background: #2e7d32; }
+.txn-ris { background: #1565c0; }
+.txn-ssmi { background: #ef6c00; }
+
+/* ========================================
    FOOTER
 ======================================== */
 footer {
@@ -1231,5 +1420,524 @@ footer {
     .header-date,
     .user-menu-name {
         display: none;
+    }
+}
+
+/* ========================================
+   LOW STOCK / REORDER ALERTS
+======================================== */
+.cards article.card-alert {
+    border-color: #f0c2bd;
+    background: #fdf3f2;
+}
+
+.cards article.card-alert strong {
+    color: #a94343;
+}
+
+.panel.panel-warning {
+    border-color: #f0d9a8;
+    background: #fffdf6;
+}
+
+.panel.panel-warning h3 {
+    color: #8b631c;
+}
+
+tr.row-low-stock td {
+    background: #fdf5f4;
+}
+
+.low-tag {
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* ========================================
+   FILE PICKER FIELD
+======================================== */
+.file-field {
+    display: grid;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #28405a;
+}
+
+.file-field input {
+    font-size: 11px;
+    color: #30465b;
+}
+
+/* ========================================
+   PROPERTY CLEARANCE SHEET
+======================================== */
+.clearance-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #edf1f5;
+}
+
+.clearance-head small {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+    color: #7b8ea2;
+    font-weight: 700;
+}
+
+.clearance-head h2 {
+    margin: 6px 0 2px;
+    font: 800 19px Manrope;
+    color: #203247;
+}
+
+.clearance-head p {
+    margin: 0;
+    font-size: 11px;
+    color: #7d8b9a;
+}
+
+.clearance-meta {
+    display: grid;
+    gap: 6px;
+    min-width: 220px;
+    font-size: 11px;
+}
+
+.clearance-meta div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px dotted #e1e8ef;
+}
+
+.clearance-meta span {
+    color: #7d8b9a;
+}
+
+.clearance-meta b {
+    color: #28405a;
+    text-align: right;
+}
+
+.clearance-note {
+    margin: 16px 0;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #4a5f75;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.sign-block {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    margin-top: 26px;
+}
+
+.sign-block > div {
+    display: grid;
+    gap: 6px;
+    text-align: center;
+}
+
+.sign-block b {
+    display: block;
+    min-height: 20px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #93a3b3;
+    font-size: 12px;
+    color: #28405a;
+}
+
+.sign-block span {
+    font-size: 10px;
+    color: #7d8b9a;
+}
+
+/* ========================================
+   ROLE CHAT
+======================================== */
+.chat-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 900px;
+}
+
+.chat-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.chat-head h3 {
+    margin: 0;
+}
+
+.chat-head small {
+    color: #8492a1;
+    font-size: 11px;
+}
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 46vh;
+    min-height: 260px;
+    overflow-y: auto;
+    padding: 14px;
+    background: #f8fafc;
+    border: 1px solid #e6ecf2;
+    border-radius: 8px;
+}
+
+.chat-empty {
+    margin: auto;
+    color: #8492a1;
+    font-size: 12px;
+}
+
+.chat-bubble {
+    align-self: flex-start;
+    max-width: min(72%, 520px);
+    padding: 9px 12px;
+    background: #fff;
+    border: 1px solid #e6ecf2;
+    border-radius: 12px 12px 12px 3px;
+}
+
+.chat-bubble.mine {
+    align-self: flex-end;
+    background: #eaf2fa;
+    border-color: #cfe0ef;
+    border-radius: 12px 12px 3px 12px;
+}
+
+.chat-bubble b {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    color: #205783;
+}
+
+.chat-bubble p {
+    margin: 0;
+    color: #2f4a63;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.chat-bubble small {
+    display: block;
+    margin-top: 4px;
+    color: #93a3b3;
+    font-size: 10px;
+}
+
+.chat-form {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-form input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #dce5ed;
+    border-radius: 7px;
+    padding: 11px 12px;
+    color: #30465b;
+    font: 13px 'DM Sans';
+}
+
+.chat-form input:focus {
+    outline: 2px solid #20578330;
+    border-color: #5080a5;
+}
+
+/* ========================================
+   BULK IMPORT
+======================================== */
+.head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.field-block {
+    display: grid;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #28405a;
+}
+
+.field-block textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    border: 1px solid #dce5ed;
+    border-radius: 6px;
+    padding: 10px;
+    color: #30465b;
+    font: 11px/1.5 ui-monospace, 'DM Sans', monospace;
+    white-space: pre;
+    overflow: auto;
+}
+
+.field-block textarea:focus {
+    outline: 2px solid #20578330;
+    border-color: #5080a5;
+}
+
+.import-preview {
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 6px;
+}
+
+tr.row-error td {
+    background: #fdf5f4;
+}
+
+/* ========================================
+   BATCH CHANGE BAR
+======================================== */
+.batch-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    margin-bottom: 14px;
+    background: #eef5fb;
+    border: 1px solid #cfe2f2;
+    border-radius: 9px;
+}
+
+.batch-bar strong {
+    font-size: 12px;
+    color: #1f4a72;
+}
+
+.batch-bar label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #5c7390;
+}
+
+.batch-bar input,
+.batch-bar select {
+    border: 1px solid #dce5ed;
+    border-radius: 6px;
+    padding: 8px;
+    font: 11px 'DM Sans';
+    color: #30465b;
+}
+
+/* ========================================
+   CHECKBOX COLUMN
+======================================== */
+th.check-col,
+td.check-col {
+    width: 34px;
+    text-align: center;
+}
+
+th.check-col input,
+td.check-col input {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+}
+
+/* ========================================
+   IMPORT COLUMN MAPPING SUMMARY
+======================================== */
+.mapping-list {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e6ecf2;
+    border-radius: 8px;
+    font-size: 10.5px;
+    line-height: 1.6;
+    color: #5c7390;
+    word-break: break-word;
+}
+
+/* ========================================
+   GLOBAL SEARCH (Ctrl + K)
+======================================== */
+.search-trigger {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #f1f5f9;
+    color: #5c7390;
+    padding: 7px 11px;
+    border-radius: 8px;
+    font-size: 11px;
+}
+
+.search-trigger:hover {
+    background: #e7eef5;
+}
+
+.search-trigger kbd {
+    font: 10px 'DM Sans';
+    color: #8492a1;
+    background: #fff;
+    border: 1px solid #dce5ed;
+    border-radius: 5px;
+    padding: 2px 5px;
+}
+
+.search-overlay {
+    align-items: flex-start;
+    padding-top: 90px;
+}
+
+.search-box {
+    width: min(620px, 100%);
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 24px 60px #0b1d3155;
+}
+
+.search-input {
+    width: 100%;
+    border: 1px solid #dce5ed;
+    border-radius: 8px;
+    padding: 13px 14px;
+    font: 14px 'DM Sans';
+    color: #203247;
+}
+
+.search-results {
+    margin-top: 12px;
+    display: grid;
+    gap: 6px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.search-result {
+    display: grid;
+    grid-template-columns: 130px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: #f8fafc;
+    border: 1px solid #eef3f8;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.search-result:hover {
+    background: #eef5fb;
+    border-color: #cfe2f2;
+}
+
+.search-result strong {
+    font: 700 11.5px 'DM Sans';
+    color: #28405a;
+}
+
+.search-result span {
+    font-size: 12px;
+    color: #42586e;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.search-result small {
+    font-size: 10px;
+    color: #7d8b9a;
+    white-space: nowrap;
+}
+
+.search-empty {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: #7d8b9a;
+}
+
+.search-hint {
+    margin: 12px 0 0;
+    font-size: 10px;
+    color: #9aa7b4;
+    text-align: center;
+}
+
+/* ========================================
+   WARNING NOTICE
+======================================== */
+.notice.warn {
+    background: #fffdf6;
+    border-color: #f0d9a8;
+    color: #8b631c;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ========================================
+   PRINT — CLEARANCE & RECORDS
+======================================== */
+@media print {
+    .sidebar,
+    header,
+    footer,
+    .page-head,
+    .toolbar,
+    .actions,
+    .no-print {
+        display: none !important;
+    }
+
+    body::before {
+        display: none;
+    }
+
+    body {
+        background: #fff;
+    }
+
+    main {
+        margin: 0 !important;
+    }
+
+    .content {
+        padding: 0;
+    }
+
+    .panel {
+        border: 0;
+        box-shadow: none;
     }
 }

@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { ASSET_FORMS } from '../data/assetForms';
+import { ASSET_FORMS, HIGH_VALUE_ARTICLES } from '../data/assetForms';
 
 // El Nido logo, inlined as a base64 data URI so it can be embedded in exports.
 import STICKER_LOGO from '../assets/Elnido-Logo.png?inline';
@@ -687,7 +687,7 @@ function buildPropertyCard(wb, assets) {
         padRows(ws, r, 7, MIN_DATA_ROWS - 1);
         r += MIN_DATA_ROWS - 1;
 
-        r = line(ws, r, 7, 'For Property Office use', true);
+        line(ws, r, 7, 'For Property Office use', true);
 
         page(ws, { landscape: true });
     });
@@ -1172,7 +1172,7 @@ function buildCOAPropertyCard(wb, assets) {
         padRows(ws, r, 8, MIN_DATA_ROWS - 1);
         r += MIN_DATA_ROWS - 1;
 
-        r = line(ws, r, 8, 'For Property Office use', true);
+        line(ws, r, 8, 'For Property Office use', true);
 
         page(ws, { landscape: true });
     });
@@ -1256,6 +1256,386 @@ function buildRPC73(wb, assets) {
     rpcSignatures(ws, r, 10);
 
     page(ws, { landscape: true });
+}
+
+// ============================================================
+// 19) AIR — ACCEPTANCE AND INSPECTION REPORT (Appendix 50)
+// Records the acceptance and inspection of supplies delivered
+// by a supplier, complete with the supply officer's and the
+// inspection committee's sign-off.
+// ============================================================
+function buildAIR(wb, assets) {
+    const ws = wb.addWorksheet('AIR');
+    const columnCount = 6;
+    widths(ws, [6, 20, 40, 10, 12, 16]);
+    ws.views = [{ showGridLines: false }];
+    ws.properties.defaultRowHeight = 15;
+
+    let r = 1;
+    r = title(ws, r, columnCount, 'Republic of the Philippines', 10, 16);
+    r = title(ws, r, columnCount, 'Province of Palawan', 10, 16);
+    r = title(ws, r, columnCount, 'Municipal Government of El Nido', 10, 16);
+    r = title(ws, r, columnCount, 'ACCEPTANCE AND INSPECTION REPORT', 13, 24);
+    r++;
+
+    // Header fields — Supplier, PO No./Date, Office/Dept., RC Code
+    put(ws, r, 1, 'Supplier :', { size: 10 });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.supplier || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'AIR No. :', { size: 10 });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.airNo || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+
+    put(ws, r, 1, 'PO No./Date :', { size: 10 });
+    ws.mergeCells(r, 2, r, 3);
+    const poLine = [assets[0]?.poNo, assets[0]?.poDate].filter(Boolean).join(' / ');
+    put(ws, r, 2, poLine, { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'Date :', { size: 10 });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.airDate || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+
+    put(ws, r, 1, 'Office/Dept. :', { size: 10 });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.officeDept || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'Invoice No. :', { size: 10 });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.invoiceNo || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+
+    put(ws, r, 1, 'RC Code :', { size: 10 });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.rcCode || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'Date :', { size: 10 });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.invoiceDate || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+    r++;
+
+    // Items table
+    r = head(ws, r, ['No.', 'Stock / Property No.', 'Description', 'Unit', 'Quantity', 'Remarks']);
+
+    let totalQty = 0;
+    assets.forEach((a, i) => {
+        const qty = Number(a.quantity || 0);
+        totalQty += qty;
+        put(ws, r, 1, i + 1, { align: 'center', size: 10 });
+        put(ws, r, 2, a.propertyNo || '', { align: 'center', size: 10 });
+        put(ws, r, 3, a.description || '', { size: 10 });
+        put(ws, r, 4, a.unit || '', { align: 'center', size: 10 });
+        put(ws, r, 5, qty, { align: 'center', size: 10 });
+        put(ws, r, 6, a.remarks || '', { size: 10 });
+        border(ws, r, 1, r, columnCount);
+        r++;
+    });
+
+    const pad = padCount(assets.length);
+    padRows(ws, r, columnCount, pad);
+    r += pad;
+
+    put(ws, r, 4, 'TOTAL', { bold: true, align: 'right', fill: true });
+    put(ws, r, 5, totalQty, { bold: true, align: 'center', fill: true });
+    border(ws, r, 1, r, columnCount);
+    r += 2;
+
+    // ACCEPTANCE and INSPECTION sections side by side
+    const acceptCol = 1;
+    const inspectCol = 4;
+
+    put(ws, r, acceptCol, 'ACCEPTANCE', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(r, acceptCol, r, inspectCol - 1);
+    put(ws, r, inspectCol, 'INSPECTION', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(r, inspectCol, r, columnCount);
+    border(ws, r, acceptCol, r, columnCount);
+    r++;
+
+    put(ws, r, acceptCol, 'Date Received: ____________________', { size: 10 });
+    ws.mergeCells(r, acceptCol, r, inspectCol - 1);
+    put(ws, r, inspectCol, 'Date Inspected: ____________________', { size: 10 });
+    ws.mergeCells(r, inspectCol, r, columnCount);
+    r++;
+
+    put(ws, r, acceptCol, '☐  Complete', { size: 10 });
+    ws.mergeCells(r, acceptCol, r, inspectCol - 1);
+    put(ws, r, inspectCol, '☐  Inspected, verified and found in order', { size: 10 });
+    ws.mergeCells(r, inspectCol, r, columnCount);
+    r++;
+
+    put(ws, r, acceptCol, '☐  Partial (pls. specify quantity) ____________', { size: 10 });
+    ws.mergeCells(r, acceptCol, r, inspectCol - 1);
+    put(ws, r, inspectCol, 'as to quantity and specifications', { size: 10 });
+    ws.mergeCells(r, inspectCol, r, columnCount);
+    r += 2;
+
+    // Signature blocks
+    block(ws, r, acceptCol, [
+        'Supply Officer',
+        'ENGR. REMEDIOS A. ULANDAY',
+        'General Services Officer'
+    ]);
+    block(ws, r, inspectCol, [
+        'Accounting Representative / Inspection Comm.',
+        '____________________________',
+        'Signature over Printed Name'
+    ]);
+    r += 4;
+
+    block(ws, r, inspectCol, [
+        'End-User Representative / Inspection Comm.',
+        '____________________________',
+        'Signature over Printed Name'
+    ]);
+
+    page(ws);
+    ws.pageSetup.printArea = `A1:F${r + 3}`;
+}
+
+// ============================================================
+// 20) RIS — REQUISITION AND ISSUE SLIP (Appendix 59)
+// A two-part form: the requesting office lists the items they
+// need (REQUISITION), and the warehouse records what was issued
+// (ISSUANCE).
+// ============================================================
+function buildRIS(wb, assets) {
+    const ws = wb.addWorksheet('RIS');
+    const columnCount = 6;
+    widths(ws, [14, 10, 36, 10, 10, 24]);
+    ws.views = [{ showGridLines: false }];
+    ws.properties.defaultRowHeight = 15;
+
+    let r = 1;
+    r = title(ws, r, columnCount, 'Republic of the Philippines', 10, 16);
+    r = title(ws, r, columnCount, 'Province of Palawan', 10, 16);
+    r = title(ws, r, columnCount, 'Municipal Government of El Nido', 10, 16);
+    r = title(ws, r, columnCount, 'REQUISITION AND ISSUE SLIP', 13, 24);
+    r++;
+
+    // Header fields
+    put(ws, r, 1, 'FUND:', { size: 10, bold: true });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.fund || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'FPP Code', { size: 10, bold: true, align: 'center' });
+    put(ws, r, 5, '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    put(ws, r, 6, '', { size: 10 });
+    r++;
+
+    put(ws, r, 1, 'LGU:', { size: 10, bold: true });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, 'Municipality of El Nido', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'RIS No.', { size: 10, bold: true, align: 'center' });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.risNo || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+
+    put(ws, r, 1, 'Division:', { size: 10, bold: true });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.division || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    put(ws, r, 4, 'Date', { size: 10, bold: true, align: 'center' });
+    ws.mergeCells(r, 5, r, 6);
+    put(ws, r, 5, assets[0]?.risDate || '', { size: 10 });
+    ws.getCell(r, 5).border = { bottom: { style: 'thin' } };
+    r++;
+
+    put(ws, r, 1, 'Office/Dept.:', { size: 10, bold: true });
+    ws.mergeCells(r, 2, r, 3);
+    put(ws, r, 2, assets[0]?.officeDept || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    r++;
+    r++;
+
+    // Two-column header: REQUISITION and ISSUANCE
+    put(ws, r, 1, 'REQUISITION', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(r, 1, r, 4);
+    put(ws, r, 5, 'ISSUANCE', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(r, 5, r, 6);
+    border(ws, r, 1, r, columnCount);
+    r++;
+
+    // Sub-headers
+    put(ws, r, 1, 'Stock No.', { bold: true, align: 'center', fill: true });
+    put(ws, r, 2, 'Unit', { bold: true, align: 'center', fill: true });
+    put(ws, r, 3, 'Description', { bold: true, align: 'center', fill: true });
+    put(ws, r, 4, 'Quantity', { bold: true, align: 'center', fill: true });
+    put(ws, r, 5, 'Quantity', { bold: true, align: 'center', fill: true });
+    put(ws, r, 6, 'Remarks', { bold: true, align: 'center', fill: true });
+    border(ws, r, 1, r, columnCount);
+    ws.getRow(r).height = 28;
+    r++;
+
+    let totalReq = 0;
+    let totalIssued = 0;
+    assets.forEach(a => {
+        const qty = Number(a.quantity || 0);
+        totalReq += qty;
+        totalIssued += qty;
+        put(ws, r, 1, a.propertyNo || '', { align: 'center', size: 10 });
+        put(ws, r, 2, a.unit || '', { align: 'center', size: 10 });
+        put(ws, r, 3, a.description || '', { size: 10 });
+        put(ws, r, 4, qty, { align: 'center', size: 10 });
+        put(ws, r, 5, qty, { align: 'center', size: 10 });
+        put(ws, r, 6, a.remarks || '', { size: 10 });
+        border(ws, r, 1, r, columnCount);
+        r++;
+    });
+
+    const pad = padCount(assets.length);
+    padRows(ws, r, columnCount, pad);
+    r += pad;
+
+    put(ws, r, 3, 'TOTAL', { bold: true, align: 'right', fill: true });
+    put(ws, r, 4, totalReq, { bold: true, align: 'center', fill: true });
+    put(ws, r, 5, totalIssued, { bold: true, align: 'center', fill: true });
+    border(ws, r, 1, r, columnCount);
+    r++;
+
+    // Purpose
+    put(ws, r, 1, 'Purpose:', { size: 10, bold: true });
+    ws.mergeCells(r, 2, r, columnCount);
+    put(ws, r, 2, assets[0]?.purpose || '', { size: 10 });
+    ws.getCell(r, 2).border = { bottom: { style: 'thin' } };
+    r += 2;
+
+    // Signatures: Requested by, Approved by, Issued by, Received by
+    block(ws, r, 1, [
+        'Requested by:',
+        '____________________________',
+        'Printed Name / Designation',
+        'Signature / Date'
+    ]);
+    block(ws, r, 4, [
+        'Approved by:',
+        'ENGR. REMEDIOS A. ULANDAY',
+        'Municipal General Services Officer',
+        'Signature / Date'
+    ]);
+    r += 5;
+
+    block(ws, r, 1, [
+        'Issued by:',
+        'ROMEL N. CARO',
+        'Supply Officer',
+        'Signature / Date'
+    ]);
+    block(ws, r, 4, [
+        'Received by:',
+        '____________________________',
+        'Printed Name / Designation',
+        'Signature / Date'
+    ]);
+
+    page(ws);
+    ws.pageSetup.printArea = `A1:F${r + 4}`;
+}
+
+// ============================================================
+// 21) SSMI — SUMMARY OF SUPPLIES AND MATERIALS ISSUED
+// A cover letter addressed to the Municipal Accountant that
+// summarises all issued supplies (RIS records) for the month,
+// with the RIS slips attached.
+// ============================================================
+function buildSSMI(wb, assets) {
+    const ws = wb.addWorksheet('SSMI');
+    const columnCount = 9;
+    widths(ws, [14, 14, 16, 14, 14, 22, 36, 14, 18]);
+    ws.views = [{ showGridLines: false }];
+    ws.properties.defaultRowHeight = 15;
+
+    let r = 1;
+    r = title(ws, r, columnCount, 'Republic of the Philippines', 10, 16);
+    r = title(ws, r, columnCount, 'Province of Palawan', 10, 16);
+    r = title(ws, r, columnCount, 'Municipal Government of El Nido', 10, 16);
+    r = title(ws, r, columnCount, 'OFFICE OF THE MUNICIPAL GENERAL SERVICES OFFICE', 11, 20);
+    r++;
+
+    const ssmi = assets.find(a => a.formType === 'ssmi') || assets[0] || {};
+    put(ws, r, 1, ssmi.accountantName || 'MR. MARK GLENN P. BALUARTE', { size: 11, bold: true });
+    ws.mergeCells(r, 1, r, columnCount);
+    r++;
+    put(ws, r, 1, ssmi.accountantTitle || 'Municipal Accountant', { size: 10 });
+    ws.mergeCells(r, 1, r, columnCount);
+    r++;
+    put(ws, r, columnCount - 1, ssmi.ssmiMonth || '', { size: 10, align: 'right' });
+    ws.mergeCells(r, columnCount - 1, r, columnCount);
+    r += 2;
+
+    put(ws, r, 1, 'Dear Accountant,', { size: 11 });
+    ws.mergeCells(r, 1, r, columnCount);
+    r += 2;
+
+    put(ws, r, 1,
+        'Please find Summary of Supplies and Materials Issued (SSMI) with attached RIS as per available ' +
+        'record in our office;',
+        { size: 11 }
+    );
+    ws.mergeCells(r, 1, r, columnCount);
+    ws.getCell(r, 1).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+    ws.getRow(r).height = 30;
+    r += 2;
+
+    // Summary table — pulls from RIS records
+    r = head(ws, r, [
+        'RIS No.', 'P.O Number', 'RIS No.', 'Office', 'Amount',
+        'Supplier', 'Description', 'Remarks', 'Received By'
+    ]);
+
+    // RIS records feed the SSMI summary table.
+    const risRecords = assets.filter(a => a.formType === 'ris');
+    const rows = risRecords.length ? risRecords : (assets.length ? assets : []);
+    let totalAmount = 0;
+    rows.forEach(a => {
+        const amount = Number(a.cost || 0) * Number(a.quantity || 0);
+        totalAmount += amount;
+        put(ws, r, 1, a.risNo || '', { align: 'center', size: 9 });
+        put(ws, r, 2, a.poNo || '', { align: 'center', size: 9 });
+        put(ws, r, 3, '', { align: 'center', size: 9 });
+        put(ws, r, 4, a.officeDept || a.department || '', { size: 9 });
+        put(ws, r, 5, amount, { align: 'right', size: 9, numFmt: usd });
+        put(ws, r, 6, a.supplier || '', { size: 9 });
+        put(ws, r, 7, a.description || '', { size: 9 });
+        put(ws, r, 8, a.remarks || 'COMPLETE', { align: 'center', size: 9 });
+        put(ws, r, 9, a.accountable || '', { size: 9 });
+        border(ws, r, 1, r, columnCount);
+        r++;
+    });
+
+    const pad = padCount(rows.length);
+    padRows(ws, r, columnCount, pad);
+    r += pad;
+
+    put(ws, r, 4, 'TOTAL', { bold: true, align: 'right', fill: true });
+    put(ws, r, 5, totalAmount, { bold: true, align: 'right', fill: true, numFmt: usd });
+    border(ws, r, 1, r, columnCount);
+    r += 2;
+
+    put(ws, r, 1, 'Please acknowledge receipt hereof.', { size: 11 });
+    ws.mergeCells(r, 1, r, columnCount);
+    r += 3;
+
+    put(ws, r, 1, 'Very truly yours,', { size: 11 });
+    ws.mergeCells(r, 1, r, columnCount);
+    r += 2;
+
+    block(ws, r, 1, [
+        'ENGR. REMEDIOS A. ULANDAY',
+        'General Services Officer'
+    ]);
+
+    page(ws, { landscape: true });
+    ws.pageSetup.printArea = `A1:I${r + 2}`;
 }
 
 // ============================================================
@@ -1367,6 +1747,147 @@ function buildSticker(wb, assets) {
     if (!assets.length) {
         writeStickerSheet(wb, 'General - Yellow', [], STICKER_YELLOW, logoId);
     }
+}
+
+// ============================================================
+// 21) REGISTRY OF SEMI-EXPENDABLE PROPERTY ISSUED (HIGH VALUE)
+// ------------------------------------------------------------
+// The GSO keeps this registry as one sheet per article category
+// (Printer, Photocopier, Projector, ...). Each sheet carries the
+// same COA layout with the article named on the "SEMI-EXPENDABLE
+// PROPERTY" line. Blank template sheets are still emitted for every
+// category so the export always matches the reference workbook.
+// ============================================================
+
+// Build a single registry sheet for one article. Reused for every
+// category so the layout stays consistent across sheets.
+function buildHighValueSheet(wb, article, records) {
+    const ws = wb.addWorksheet(article || 'High Value');
+    ws.views = [{ showGridLines: false }];
+    ws.properties.defaultRowHeight = 15;
+    widths(ws, [12, 14, 18, 16, 28, 12, 6, 20, 6, 18, 6, 18, 7, 7, 12, 18]);
+
+    const COLS = 16;
+
+    title(ws, 1, COLS, 'REGISTRY OF SEMI-EXPENDABLE PROPERTY ISSUED', 13, 26);
+    ws.getRow(2).height = 8;
+
+    // Entity name / Fund cluster
+    ws.mergeCells(3, 1, 3, 9);
+    put(ws, 3, 1, 'ENTITY NAME: LOCAL GOVERNMENT UNIT-EL NIDO', { bold: true });
+    ws.mergeCells(3, 10, 3, COLS);
+    put(ws, 3, 10, 'FUND CLUSTER:', { bold: true });
+
+    // Semi-expendable property / Sheet no.
+    ws.mergeCells(4, 1, 4, 4);
+    put(ws, 4, 1, 'SEMI-EXPENDABLE PROPERTY:');
+    ws.mergeCells(4, 5, 4, 9);
+    put(ws, 4, 5, article || 'HIGH VALUE', { bold: true });
+    ws.mergeCells(4, 10, 4, COLS);
+    put(ws, 4, 10, 'SHEET NO.:');
+
+    ws.getRow(5).height = 12;
+
+    // Two-row header band
+    const hr = 6;
+
+    ws.mergeCells(hr, 1, hr + 1, 1);
+    put(ws, hr, 1, 'Date', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 2, hr, 3);
+    put(ws, hr, 2, 'Reference', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 4, hr + 1, 4);
+    put(ws, hr, 4, 'Article', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 5, hr + 1, 5);
+    put(ws, hr, 5, 'Item Description', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 6, hr + 1, 6);
+    put(ws, hr, 6, 'Estimated Useful Life', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 7, hr, 8);
+    put(ws, hr, 7, 'Issued', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 9, hr, 10);
+    put(ws, hr, 9, 'Returned', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 11, hr, 12);
+    put(ws, hr, 11, 'Re-Issued', { bold: true, align: 'center', fill: true });
+    put(ws, hr, 13, 'Disposed', { bold: true, align: 'center', fill: true });
+    put(ws, hr, 14, 'Balance', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 15, hr + 1, 15);
+    put(ws, hr, 15, 'Amount', { bold: true, align: 'center', fill: true });
+    ws.mergeCells(hr, 16, hr + 1, 16);
+    put(ws, hr, 16, 'Remarks', { bold: true, align: 'center', fill: true });
+
+    const sub = { bold: true, size: 9, align: 'center', fill: true };
+    put(ws, hr + 1, 2, 'ICS/RRSP NO.', sub);
+    put(ws, hr + 1, 3, 'Semi-expendable Property No.', sub);
+    put(ws, hr + 1, 7, 'Qty.', sub);
+    put(ws, hr + 1, 8, 'Office/Officer', sub);
+    put(ws, hr + 1, 9, 'Qty.', sub);
+    put(ws, hr + 1, 10, 'Officer/Office', sub);
+    put(ws, hr + 1, 11, 'Qty.', sub);
+    put(ws, hr + 1, 12, 'Officer/Office', sub);
+    put(ws, hr + 1, 13, 'Qty.', sub);
+    put(ws, hr + 1, 14, 'Qty.', sub);
+
+    ws.getRow(hr).height = 28;
+    ws.getRow(hr + 1).height = 28;
+    border(ws, hr, 1, hr + 1, COLS);
+
+    let r = hr + 2;
+    let total = 0;
+
+    (records || []).forEach(a => {
+        const cost = Number(a.cost || 0);
+        total += cost;
+
+        put(ws, r, 1, a.entryDate || a.acquisitionDate || '', { align: 'center' });
+        put(ws, r, 2, a.reference || '', { align: 'center' });
+        put(ws, r, 3, a.propertyNo || '', { align: 'center' });
+        put(ws, r, 4, a.article || '');
+        put(ws, r, 5, a.description || '');
+        put(ws, r, 6, a.estimatedLife || '', { align: 'center' });
+        put(ws, r, 7, a.quantity ?? '', { align: 'center' });
+        put(ws, r, 8, a.accountable || a.department || '');
+        put(ws, r, 15, cost, { align: 'right', numFmt: usd });
+        put(ws, r, 16, a.remarks || '');
+        border(ws, r, 1, r, COLS);
+        r++;
+    });
+
+    const pad = padCount((records || []).length);
+    padRows(ws, r, COLS, pad);
+    r += pad;
+
+    put(ws, r, 14, 'TOTAL', { bold: true, align: 'right', fill: true });
+    put(ws, r, 15, total, { bold: true, align: 'right', fill: true, numFmt: usd });
+    border(ws, r, 1, r, COLS);
+
+    page(ws, { landscape: true });
+}
+
+function buildHighValue(wb, assets) {
+    const known = new Set(HIGH_VALUE_ARTICLES);
+
+    // Group records by their article. Known articles get their own sheet;
+    // anything else (blank or unrecognised) goes into the catch-all sheet.
+    const byArticle = new Map();
+    HIGH_VALUE_ARTICLES.forEach(article => byArticle.set(article, []));
+    const catchAll = [];
+
+    (assets || []).forEach(a => {
+        const article = String(a.article || '').trim();
+        if (article && known.has(article)) {
+            byArticle.get(article).push(a);
+        } else {
+            catchAll.push(a);
+        }
+    });
+
+    // The "High Value" sheet comes first in the reference workbook and is
+    // always emitted as the catch-all for items without a specific article.
+    buildHighValueSheet(wb, 'High Value', catchAll);
+
+    // Then one sheet per article category, in the reference workbook order.
+    HIGH_VALUE_ARTICLES.forEach(article =>
+        buildHighValueSheet(wb, article, byArticle.get(article) || [])
+    );
 }
 
 // ============================================================
@@ -1532,6 +2053,38 @@ export const FORMS = [
         file: 'Appendix 73 - RPCPPE',
         formType: 'rpcppe',
         build: (wb, assets) => buildRPC73(wb, assets)
+    },
+    {
+        id: 'air',
+        name: 'AIR — Acceptance and Inspection Report',
+        note: 'Appendix 50 · acceptance and inspection of supplies delivered by supplier',
+        file: 'Acceptance and Inspection Report',
+        formType: 'air',
+        build: (wb, assets) => buildAIR(wb, assets)
+    },
+    {
+        id: 'ris',
+        name: 'RIS — Requisition and Issue Slip',
+        note: 'Appendix 59 · requisition and issuance of supplies to requesting office',
+        file: 'Requisition and Issue Slip',
+        formType: 'ris',
+        build: (wb, assets) => buildRIS(wb, assets)
+    },
+    {
+        id: 'ssmi',
+        name: 'SSMI — Summary of Supplies and Materials Issued',
+        note: 'Monthly summary of issued supplies with attached RIS for the accounting office',
+        file: 'Summary of Supplies and Materials Issued',
+        formType: ['ssmi', 'ris'],
+        build: (wb, assets) => buildSSMI(wb, assets)
+    },
+    {
+        id: 'high-value',
+        name: 'Registry of Semi-Expendable Property Issued — HIGH VALUE',
+        note: 'COA registry · semi-expendable HIGH VALUE property issued to offices/officers',
+        file: 'Registry of Semi-Expendable Property Issued (High Value)',
+        formType: 'high-value',
+        build: (wb, assets) => buildHighValue(wb, assets)
     },
     {
         id: 'sticker',

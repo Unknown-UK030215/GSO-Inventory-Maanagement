@@ -3,58 +3,17 @@ import { Link } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
 import { useAuth } from '../context/useAuth';
 import { useInventory } from '../context/InventoryContext';
-import { getRole } from '../data/userRoles';
+import { useSupply } from '../context/SupplyContext';
+import { isWarehouseTransaction } from '../data/assetForms';
+import { getRole, isAdminRole } from '../data/userRoles';
+import AdminDashboard from './AdminDashboard';
+import BarList from '../components/common/BarList';
+import { peso, pesoShort } from '../services/formatService';
+import { missingList, unserviceableList, exportForm } from '../services/formService';
 
-import { missingList, unserviceableList } from '../services/formService';
-
-// Full peso amount for the welcome line.
-const peso = n =>
-    '₱' + Number(n || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-// Compact peso for the KPI cards.
-function pesoShort(n) {
-    const v = Number(n || 0);
-    if (v >= 1e9) return '₱' + (v / 1e9).toFixed(2) + 'B';
-    if (v >= 1e6) return '₱' + (v / 1e6).toFixed(2) + 'M';
-    if (v >= 1e3) return '₱' + (v / 1e3).toFixed(1) + 'K';
-    return '₱' + v.toFixed(2);
-}
-
-// Horizontal bar breakdown used by the dashboard panels.
-function Breakdown({ title, rows, total, tone }) {
-    return (
-        <article className="panel">
-
-            <h3>{title}</h3>
-
-            {!rows.length && <p>No records yet.</p>}
-
-            {rows.map(([label, value]) => (
-                <div className="bar-row" key={label}>
-
-                    <span className="bar-label" title={label}>{label}</span>
-
-                    <div className="bar-track">
-                        <div
-                            className="bar-fill"
-                            style={{
-                                width: total ? `${(value / total) * 100}%` : 0,
-                                background: tone
-                            }}
-                        />
-                    </div>
-
-                    <b className="bar-value">{value}</b>
-
-                </div>
-            ))}
-
-        </article>
-    );
-}
-
-function RoleDashboard({ roleId, assets, logs }) {
+function RoleDashboard({ roleId, assets, warehouseAssets, logs }) {
     const role = getRole(roleId);
+    const { lowStock } = useSupply();
 
     if (role.id === 'fuel-vehicle') {
         const vehiclePattern = /vehicle|fleet|fuel|diesel|gasoline|petrol|motorcycle|motor|truck|car|van|bus|pickup|plate|engine|lubricant/i;
@@ -132,33 +91,161 @@ function RoleDashboard({ roleId, assets, logs }) {
         );
     }
 
-    const units = assets.reduce((sum, asset) => sum + Number(asset.quantity || 1), 0);
-    const categories = [...new Set(assets.map(asset => asset.category || 'Uncategorized'))]
+    // Warehouse item register — its own pool, separate from the inventory
+    // property records. Transactional forms (AIR / RIS / SSMI) are handled
+    // below and excluded from the item stats.
+    const stockItems = warehouseAssets.filter(asset => !isWarehouseTransaction(asset.formType));
+
+    const units = stockItems.reduce((sum, asset) => sum + Number(asset.quantity || 1), 0);
+    const categories = [...new Set(stockItems.map(asset => asset.category || 'Uncategorized'))]
         .map(category => [
             category,
-            assets.reduce((count, asset) =>
+            stockItems.reduce((count, asset) =>
                 count + ((asset.category || 'Uncategorized') === category ? Number(asset.quantity || 1) : 0), 0)
         ])
         .sort((a, b) => b[1] - a[1]);
-    const unassigned = assets.filter(asset => asset.status === 'Unassigned').length;
-    const awaiting = assets.filter(asset =>
+    const unassigned = stockItems.filter(asset => asset.status === 'Unassigned').length;
+    const awaiting = stockItems.filter(asset =>
         asset.condition === 'For Inspection' || asset.condition === 'Unserviceable'
     ).length;
+
+    // Warehouse transaction records — AIR, RIS, and SSMI forms.
+    // These live in a separate pool from inventory property records.
+    const airRecords = warehouseAssets.filter(a => a.formType === 'air');
+    const risRecords = warehouseAssets.filter(a => a.formType === 'ris');
+    const ssmiRecords = warehouseAssets.filter(a => a.formType === 'ssmi');
+
+    // Quick-export handlers for the warehouse operation cards.
+    const quickExport = (formId) => exportForm(formId, [...assets, ...warehouseAssets]);
+
+    const warehouseActions = [
+        {
+            id: 'air',
+            label: 'Acceptance & Inspection Report',
+            short: 'AIR',
+            count: airRecords.length,
+            description: 'Appendix 50 — record and inspect supplies from suppliers',
+            tone: '#2e7d32'
+        },
+        {
+            id: 'ris',
+            label: 'Requisition & Issue Slip',
+            short: 'RIS',
+            count: risRecords.length,
+            description: 'Appendix 59 — requisition and issue supplies to offices',
+            tone: '#1565c0'
+        },
+        {
+            id: 'ssmi',
+            label: 'Summary of Supplies & Materials Issued',
+            short: 'SSMI',
+            count: ssmiRecords.length,
+            description: 'Monthly summary of issued supplies with attached RIS',
+            tone: '#ef6c00'
+        }
+    ];
+
+    // Recent warehouse transactions (AIR + RIS + SSMI), newest first.
+    const transactions = [...airRecords, ...risRecords, ...ssmiRecords]
+        .sort((a, b) => (b.id || 0) - (a.id || 0))
+        .slice(0, 8);
+
+    const txnLabel = (formType) => {
+        if (formType === 'air') return 'AIR';
+        if (formType === 'ris') return 'RIS';
+        if (formType === 'ssmi') return 'SSMI';
+        return formType;
+    };
+
+    const txnRef = (a) =>
+        a.airNo || a.risNo || a.ssmiMonth || a.propertyNo || '—';
 
     return (
         <>
             <PageHeader
                 title="Warehouse Staff Dashboard"
-                description="Stock quantities, item categories, and inventory follow-up from the shared register."
+                description="Stock quantities, item categories, warehouse transactions, and inventory follow-up from the warehouse register."
             />
+
             <div className="cards">
-                <article><small>Registered Items</small><strong>{assets.length}</strong></article>
+                <article><small>Registered Items</small><strong>{stockItems.length}</strong></article>
                 <article><small>Total Units</small><strong>{units}</strong></article>
                 <article><small>Unassigned Items</small><strong>{unassigned}</strong></article>
                 <article><small>Needs Follow-up</small><strong>{awaiting}</strong></article>
             </div>
+
+            {lowStock.length > 0 && (
+                <article className="panel panel-warning">
+                    <h3>Reorder Soon</h3>
+                    <p className="result-count">
+                        {lowStock.length} suppl{lowStock.length === 1 ? 'y has' : 'ies have'} reached the
+                        minimum level. Manage reorder levels on the{' '}
+                        <Link to="/rpci">Stock on Hand (RPCI)</Link> page.
+                    </p>
+                    <div className="table-scroll">
+                        <table>
+                            <thead>
+                                <tr><th>Stock No.</th><th>Description</th><th>On Hand</th><th>Min Level</th></tr>
+                            </thead>
+                            <tbody>
+                                {lowStock.map(item => (
+                                    <tr key={item.id}>
+                                        <td>{item.stockNo || '—'}</td>
+                                        <td>{item.description}</td>
+                                        <td><b>{item.onHand}</b> {item.unit || ''}</td>
+                                        <td>{item.minLevel}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+            )}
+
+            {/* =========================================
+                WAREHOUSE OPERATIONS — QUICK ACTIONS
+            ========================================= */}
+            <div className="panel">
+                <h3>Warehouse Operations</h3>
+                <p className="result-count">
+                    Generate the official GSO warehouse forms. Each card shows how many
+                    records are on file for that form.
+                </p>
+                <div className="warehouse-actions">
+                    {warehouseActions.map(action => (
+                        <div className="warehouse-action-card" key={action.id}>
+                            <div className="wa-header">
+                                <span className="wa-badge" style={{ background: action.tone }}>
+                                    {action.short}
+                                </span>
+                                <strong>{action.count}</strong>
+                                <small>record{action.count === 1 ? '' : 's'}</small>
+                            </div>
+                            <div className="wa-body">
+                                <b>{action.label}</b>
+                                <small>{action.description}</small>
+                            </div>
+                            <div className="wa-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => quickExport(action.id)}
+                                    disabled={action.count === 0 && action.id !== 'ssmi'}
+                                >
+                                    Export .xlsx
+                                </button>
+                                <Link to="/forms">
+                                    <button type="button" className="secondary">
+                                        All Forms
+                                    </button>
+                                </Link>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="split">
-                <Breakdown title="Units by Category" rows={categories} total={units} />
+                <BarList title="Units by Category" rows={categories} total={units} />
                 <article className="panel">
                     <h3>Warehouse Inventory</h3>
                     <div className="table-scroll">
@@ -167,7 +254,7 @@ function RoleDashboard({ roleId, assets, logs }) {
                                 <tr><th>Property No.</th><th>Item</th><th>Category</th><th>Qty</th><th>Status</th></tr>
                             </thead>
                             <tbody>
-                                {assets.slice(0, 10).map(asset => (
+                                {stockItems.slice(0, 10).map(asset => (
                                     <tr key={asset.id}>
                                         <td>{asset.propertyNo || '—'}</td>
                                         <td>{asset.description || '—'}</td>
@@ -176,23 +263,76 @@ function RoleDashboard({ roleId, assets, logs }) {
                                         <td>{asset.status || 'Unassigned'}</td>
                                     </tr>
                                 ))}
-                                {!assets.length && <tr><td colSpan="5">No inventory records yet.</td></tr>}
+                                {!stockItems.length && <tr><td colSpan="5">No inventory records yet.</td></tr>}
                             </tbody>
                         </table>
                     </div>
                 </article>
             </div>
+
+            {/* =========================================
+                RECENT WAREHOUSE TRANSACTIONS
+            ========================================= */}
+            <article className="panel">
+                <h3>Recent Warehouse Transactions</h3>
+                <p className="result-count">
+                    Latest AIR, RIS, and SSMI records filed in the register.
+                </p>
+                <div className="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Form</th>
+                                <th>Reference No.</th>
+                                <th>Description</th>
+                                <th>Office / Dept.</th>
+                                <th>Qty</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {transactions.map(a => (
+                                <tr key={a.id}>
+                                    <td>
+                                        <span className={`txn-tag txn-${a.formType}`}>
+                                            {txnLabel(a.formType)}
+                                        </span>
+                                    </td>
+                                    <td>{txnRef(a)}</td>
+                                    <td>{a.description || a.ssmiMonth || '—'}</td>
+                                    <td>{a.officeDept || a.department || '—'}</td>
+                                    <td>{a.quantity ?? '—'}</td>
+                                    <td>{a.airDate || a.risDate || '—'}</td>
+                                </tr>
+                            ))}
+                            {!transactions.length && (
+                                <tr>
+                                    <td colSpan="6">
+                                        No warehouse transactions yet. Register an AIR or RIS
+                                        from the <Link to="/assets">Assets</Link> page.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </article>
         </>
     );
 }
 
 export default function Dashboard() {
 
-    const { assets, logs } = useInventory();
+    const { assets, warehouseAssets, logs } = useInventory();
     const { user } = useAuth();
 
+    // Administrators get their own organization-wide dashboard.
+    if (isAdminRole(user?.role)) {
+        return <AdminDashboard />;
+    }
+
     if (user?.role && user.role !== 'staff') {
-        return <RoleDashboard roleId={user.role} assets={assets} logs={logs} />;
+        return <RoleDashboard roleId={user.role} assets={assets} warehouseAssets={warehouseAssets} logs={logs} />;
     }
 
     const unserviceable = unserviceableList(assets);
@@ -263,12 +403,12 @@ export default function Dashboard() {
             </div>
 
             <div className="split">
-                <Breakdown title="By Classification" rows={byClassification} total={assets.length} />
-                <Breakdown title="By Condition" rows={byCondition} total={assets.length} tone="#c2762e" />
+                <BarList title="By Classification" rows={byClassification} total={assets.length} />
+                <BarList title="By Condition" rows={byCondition} total={assets.length} tone="#c2762e" />
             </div>
 
             <div className="split">
-                <Breakdown title="By Department" rows={byDepartment} total={assets.length} />
+                <BarList title="By Department" rows={byDepartment} total={assets.length} />
 
                 <article className="panel">
 

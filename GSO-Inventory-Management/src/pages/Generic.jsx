@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import PageHeader from '../components/common/PageHeader';
 import { useInventory } from '../context/InventoryContext';
+import { useAuth } from '../context/useAuth';
+import { isWarehouseTransaction } from '../data/assetForms';
 import { departments as defaultDepartments } from '../data/sampleAssets';
 import { exportCSV } from '../services/reportService';
 
@@ -609,17 +611,28 @@ function ActivityLogsPage({ logs }) {
 }
 
 export default function Generic({ page }) {
-    const { assets, logs, updateAsset } = useInventory();
+    const { assets, warehouseAssets, logs, updateAsset } = useInventory();
+    const { user } = useAuth();
     const title = titles[page] || 'Inventory Records';
 
+    // Warehouse staff work entirely within the warehouse register; every
+    // other role works with the inventory property register. Transactional
+    // warehouse forms are excluded because they are not property records.
+    const pool = useMemo(
+        () => (user?.role === 'warehouse'
+            ? warehouseAssets.filter(asset => !isWarehouseTransaction(asset.formType))
+            : assets),
+        [user?.role, assets, warehouseAssets]
+    );
+
     if (page === 'assignments') {
-        return <AssignmentsPage assets={assets} updateAsset={updateAsset} />;
+        return <AssignmentsPage assets={pool} updateAsset={updateAsset} />;
     }
     if (page === 'transfers') {
-        return <TransfersPage assets={assets} logs={logs} updateAsset={updateAsset} />;
+        return <TransfersPage assets={pool} logs={logs} updateAsset={updateAsset} />;
     }
     if (page === 'inspection') {
-        return <InspectionPage assets={assets} updateAsset={updateAsset} />;
+        return <InspectionPage assets={pool} updateAsset={updateAsset} />;
     }
     if (page === 'activity-logs') {
         return <ActivityLogsPage logs={logs} />;
@@ -633,7 +646,7 @@ export default function Generic({ page }) {
                     <>
                         <h3>Inventory Data Exports</h3>
                         <p>Download working data extracts for review.</p>
-                        <button onClick={() => exportCSV(assets, 'gso-asset-register.csv')}>Export Asset Register CSV</button>
+                        <button onClick={() => exportCSV(pool, 'gso-asset-register.csv')}>Export Asset Register CSV</button>
                     </>
                 ) : page === 'physical-inventory' ? (
                     <>
@@ -645,7 +658,7 @@ export default function Generic({ page }) {
                                     <tr><th>Property</th><th>Description</th><th>Book Qty</th><th>Actual Qty</th><th>Condition</th></tr>
                                 </thead>
                                 <tbody>
-                                    {assets.map(asset => (
+                                    {pool.map(asset => (
                                         <tr key={asset.id}>
                                             <td>{asset.propertyNo}</td>
                                             <td>{asset.description}</td>
@@ -670,7 +683,7 @@ export default function Generic({ page }) {
                                             </td>
                                         </tr>
                                     ))}
-                                    {!assets.length && <tr><td colSpan="5">No properties registered.</td></tr>}
+                                    {!pool.length && <tr><td colSpan="5">No properties registered.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
@@ -684,7 +697,7 @@ export default function Generic({ page }) {
                                     <tr><th>Property No.</th><th>Description</th><th>Department</th><th>Accountable Person</th><th>Condition</th></tr>
                                 </thead>
                                 <tbody>
-                                    {assets.map(asset => (
+                                    {pool.map(asset => (
                                         <tr key={asset.id}>
                                             <td>{asset.propertyNo}</td>
                                             <td>{asset.description}</td>
@@ -693,7 +706,7 @@ export default function Generic({ page }) {
                                             <td>{asset.condition}</td>
                                         </tr>
                                     ))}
-                                    {!assets.length && <tr><td colSpan="5">No properties registered.</td></tr>}
+                                    {!pool.length && <tr><td colSpan="5">No properties registered.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
